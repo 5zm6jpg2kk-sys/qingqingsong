@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#E67E22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="清清松">
+<meta name="description" content="智能负债管理，帮你理清债务、规划还款、寻找副业">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>清清松</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Tesseract.js CDN (OCR) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+:root {
+  --primary: #E67E22;
+  --primary-light: #FDEBD0;
+  --primary-dark: #D35400;
+  --bg: #FFF8F0;
+  --card: #FFFFFF;
+  --text: #2C3E50;
+  --text-secondary: #7F8C8D;
+  --text-light: #BDC3C7;
+  --success: #27AE60;
+  --success-light: #D5F5E3;
+  --danger: #E74C3C;
+  --danger-light: #FADBD8;
+  --warning: #F39C12;
+  --warning-light: #FEF9E7;
+  --border: #F0E6DA;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.10);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-xxl: 32px;
+  --tab-height: 64px;
+  --header-height: 56px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; }
+
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg); padding: 12px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.header.scrolled { border-bottom-color: var(--border); }
+.header h1 { font-size: var(--font-size-lg); font-weight: 700; color: var(--text); }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: var(--card); color: var(--text);
+  font-size: 18px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; box-shadow: var(--shadow);
+  transition: transform 0.15s;
+}
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn.eye-btn { color: var(--text-secondary); }
+.icon-btn.eye-btn.active { color: var(--primary); }
+
+/* Pages */
+.page { display: none; padding: 16px 16px 100px; animation: fadeIn 0.25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Bottom Tab Bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; height: var(--tab-height);
+  background: var(--card); display: flex; z-index: 200;
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; cursor: pointer;
+  color: var(--text-secondary); transition: color 0.2s;
+  border: none; background: none; font-family: inherit;
+  font-size: var(--font-size-xs); padding: 6px 0;
+}
+.tab-item.active { color: var(--primary); }
+.tab-item .tab-icon { font-size: 22px; line-height: 1; }
+.tab-item .tab-label { font-size: var(--font-size-xs); font-weight: 500; }
+
+/* Cards */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.card-title { font-size: var(--font-size-md); font-weight: 600; }
+.card-badge {
+  font-size: var(--font-size-xs); padding: 4px 10px;
+  border-radius: 20px; font-weight: 500;
+}
+.badge-danger { background: var(--danger-light); color: var(--danger); }
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+
+/* Big Number */
+.big-number {
+  font-size: var(--font-size-xxl); font-weight: 800;
+  color: var(--text); letter-spacing: -1px;
+}
+.big-number.blurred { filter: blur(8px); user-select: none; }
+.number-label { font-size: var(--font-size-sm); color: var(--text-secondary); margin-top: 2px; }
+
+/* Progress Bar */
+.progress-bar {
+  height: 8px; background: var(--border); border-radius: 4px;
+  overflow: hidden; margin: 8px 0;
+}
+.progress-fill {
+  height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), #F0A04B);
+  transition: width 0.6s ease;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 24px; border-radius: 25px; border: none;
+  font-size: var(--font-size-md); font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: all 0.2s;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(230,126,34,0.3); }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-outline { background: var(--card); color: var(--primary); border: 2px solid var(--primary); }
+.btn-sm { padding: 8px 16px; font-size: var(--font-size-sm); border-radius: 20px; }
+.btn-block { width: 100%; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+
+/* Form */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: var(--font-size-sm); font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.form-input, .form-select {
+  width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); font-size: var(--font-size-md);
+  font-family: inherit; background: var(--bg); color: var(--text);
+  transition: border-color 0.2s; outline: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--primary); }
+.form-input::placeholder { color: var(--text-light); }
+.form-row { display: flex; gap: 12px; }
+.form-row > * { flex: 1; }
+.form-hint { font-size: var(--font-size-xs); color: var(--text-secondary); margin-top: 4px; }
+
+/* Tags */
+.tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  padding: 8px 16px; border-radius: 20px; font-size: var(--font-size-sm);
+  border: 2px solid var(--border); cursor: pointer; font-weight: 500;
+  background: var(--card); color: var(--text-secondary);
+  transition: all 0.2s; user-select: none; font-family: inherit;
+}
+.tag.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+
+/* Debt List */
+.debt-item {
+  background: var(--card); border-radius: var(--radius-sm); padding: 16px;
+  margin-bottom: 10px; border-left: 4px solid var(--border);
+  transition: all 0.2s; cursor: pointer;
+}
+.debt-item:active { transform: scale(0.98); }
+.debt-item.type-credit { border-left-color: #E74C3C; }
+.debt-item.type-loan { border-left-color: #F39C12; }
+.debt-item.type-family { border-left-color: #27AE60; }
+.debt-item.type-other { border-left-color: #7F8C8D; }
+.debt-item .debt-header { display: flex; justify-content: space-between; align-items: start; }
+.debt-item .debt-name { font-weight: 600; font-size: var(--font-size-md); }
+.debt-item .debt-amount { font-weight: 700; font-size: var(--font-size-lg); color: var(--text); }
+.debt-item .debt-meta { font-size: var(--font-size-xs); color: var(--text-secondary); margin-top: 4px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 300; display: flex; align-items: flex-end; justify-content: center;
+  animation: fadeInOverlay 0.2s ease;
+}
+@keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--card); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+  padding: 20px; animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 36px; height: 4px; background: var(--text-light); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: var(--font-size-lg); font-weight: 700; margin-bottom: 20px; text-align: center; }
+.modal-close {
+  position: absolute; top: 20px; right: 20px; width: 32px; height: 32px;
+  border-radius: 50%; border: none; background: var(--bg); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+/* Side hustle cards */
+.hustle-card {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.hustle-card .hustle-header { display: flex; justify-content: space-between; align-items: start; }
+.hustle-card .hustle-title { font-weight: 600; font-size: var(--font-size-md); }
+.hustle-card .hustle-income { color: var(--success); font-weight: 700; font-size: var(--font-size-md); }
+.hustle-card .hustle-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.hustle-card .hustle-tags span {
+  padding: 3px 10px; border-radius: 12px; font-size: var(--font-size-xs);
+  background: var(--primary-light); color: var(--primary-dark);
+}
+.hustle-card .hustle-channels { margin-top: 8px; font-size: var(--font-size-sm); color: var(--text-secondary); }
+.hustle-match { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: var(--font-size-xs); background: var(--success-light); color: var(--success); margin-left: 8px; }
+
+/* Snackbar */
+.snackbar {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; padding: 12px 24px; border-radius: 25px;
+  font-size: var(--font-size-sm); font-weight: 500; z-index: 400;
+  animation: slideUpSnack 0.3s ease; white-space: nowrap;
+}
+@keyframes slideUpSnack { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* Celebration */
+.celebrate-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; padding: 40px; text-align: center;
+}
+.celebrate-icon { font-size: 64px; margin-bottom: 16px; }
+.celebrate-text { color: #fff; font-size: var(--font-size-xl); font-weight: 700; margin-bottom: 8px; }
+.celebrate-sub { color: rgba(255,255,255,0.8); font-size: var(--font-size-md); margin-bottom: 24px; }
+
+/* Section */
+.section-title { font-size: var(--font-size-md); font-weight: 700; margin: 20px 0 12px; color: var(--text); }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: var(--font-size-sm); }
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed var(--primary); border-radius: var(--radius);
+  padding: 40px 20px; text-align: center; cursor: pointer;
+  background: var(--primary-light); transition: all 0.2s;
+}
+.upload-zone:hover, .upload-zone.drag-over { background: #FEF5E7; border-color: var(--primary-dark); }
+.upload-zone .upload-icon { font-size: 48px; margin-bottom: 12px; }
+.upload-zone p { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+/* Comparison card */
+.compare-card {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+}
+.compare-item {
+  background: var(--card); border-radius: var(--radius-sm); padding: 14px;
+  text-align: center; box-shadow: var(--shadow);
+}
+.compare-item.recommended { border: 2px solid var(--success); position: relative; }
+.compare-item.recommended::after {
+  content: "推荐"; position: absolute; top: -8px; right: 10px;
+  background: var(--success); color: #fff; font-size: 10px; padding: 2px 8px;
+  border-radius: 10px; font-weight: 600;
+}
+.compare-label { font-size: var(--font-size-sm); color: var(--text-secondary); }
+.compare-value { font-size: var(--font-size-xl); font-weight: 800; color: var(--text); margin: 4px 0; }
+
+/* Quick action grid */
+.quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.quick-action {
+  background: var(--card); border-radius: var(--radius-sm); padding: 16px;
+  text-align: center; cursor: pointer; box-shadow: var(--shadow);
+  transition: all 0.2s; border: none; font-family: inherit;
+}
+.quick-action:active { transform: scale(0.96); }
+.quick-action .action-icon { font-size: 28px; margin-bottom: 6px; }
+.quick-action .action-text { font-size: var(--font-size-sm); font-weight: 600; color: var(--text); }
+
+/* Print */
+@media print {
+  .tab-bar, .header, .btn, .icon-btn, .quick-actions, .modal-overlay { display: none !important; }
+  .page { display: block !important; padding: 0 !important; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Header -->
+  <header class="header" id="header">
+    <h1 id="headerTitle">清清松</h1>
+    <div class="header-actions">
+      <button class="icon-btn eye-btn" id="eyeBtn" title="隐私模式">👁️</button>
+      <button class="icon-btn" id="addBtn" title="快速添加">➕</button>
+    </div>
+  </header>
+
+  <!-- Pages -->
+  <!-- Dashboard -->
+  <div class="page active" id="page-dashboard">
+    <div class="quick-actions">
+      <button class="quick-action" onclick="openScreenshotImport()">
+        <div class="action-icon">📸</div>
+        <div class="action-text">截图导入债务</div>
+      </button>
+      <button class="quick-action" onclick="switchTab('debts'); openDebtModal();">
+        <div class="action-icon">📝</div>
+        <div class="action-text">手动添加债务</div>
+      </button>
+      <button class="quick-action" onclick="switchTab('plan')">
+        <div class="action-icon">📊</div>
+        <div class="action-text">查看还款计划</div>
+      </button>
+      <button class="quick-action" onclick="switchTab('hustle')">
+        <div class="action-icon">💼</div>
+        <div class="action-text">找副业</div>
+      </button>
+    </div>
+
+    <!-- Total Debt Card -->
+    <div class="card" id="totalDebtCard">
+      <div class="card-header">
+        <span class="card-title">💰 总债务</span>
+        <span class="card-badge badge-danger" id="debtCountBadge">0笔</span>
+      </div>
+      <div class="big-number" id="totalDebtAmount">¥0</div>
+      <div class="number-label">点击 👁️ 切换显示/隐藏</div>
+      <div class="progress-bar" style="margin-top:12px">
+        <div class="progress-fill" id="totalProgress" style="width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:var(--font-size-xs);color:var(--text-secondary)">
+        <span>已还: <b id="totalPaid">¥0</b></span>
+        <span>剩余: <b id="totalRemaining">¥0</b></span>
+      </div>
+    </div>
+
+    <!-- Daily Target -->
+    <div class="card" style="background:linear-gradient(135deg,#E67E22,#F0A04B);color:#fff;">
+      <div class="card-header">
+        <span class="card-title" style="color:#fff">🎯 今日目标</span>
+        <span style="font-size:var(--font-size-xs);opacity:0.9" id="dailyDate"></span>
+      </div>
+      <div class="big-number" style="color:#fff" id="dailyTarget">¥0</div>
+      <div class="number-label" style="color:rgba(255,255,255,0.85)" id="dailyTargetLabel">今日需要赚到</div>
+    </div>
+
+    <!-- Freedom Date -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🗓️ 预计清债日期</span>
+      </div>
+      <div style="text-align:center;padding:12px 0">
+        <div style="font-size:var(--font-size-xxl);font-weight:800;color:var(--success)" id="freedomDate">--</div>
+        <div class="number-label" id="freedomCountdown"></div>
+      </div>
+    </div>
+
+    <!-- Next Payment Alert -->
+    <div class="card" id="nextPaymentCard" style="display:none">
+      <div class="card-header">
+        <span class="card-title">⏰ 最近还款提醒</span>
+        <span class="card-badge badge-warning" id="nextPaymentDays"></span>
+      </div>
+      <div style="font-size:var(--font-size-md)" id="nextPaymentInfo"></div>
+    </div>
+
+    <!-- Debt Trend Chart -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">📈 债务下降趋势</div>
+      <canvas id="trendChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Debts Page -->
+  <div class="page" id="page-debts">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-weight:600;font-size:var(--font-size-lg)">我的债务</span>
+      <button class="btn btn-primary btn-sm" onclick="openDebtModal()">+ 添加</button>
+    </div>
+    <div id="debtList">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>还没有债务记录</p>
+        <p style="font-size:var(--font-size-xs);color:var(--text-light)">点击右上角"添加"或使用截图导入</p>
+      </div>
+    </div>
+
+    <!-- Income/Expense Summary -->
+    <div class="section-title">💸 收支情况</div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">月收入</span>
+        <button class="btn btn-outline btn-sm" onclick="openIncomeModal()">编辑</button>
+      </div>
+      <div class="big-number" style="font-size:var(--font-size-xl)" id="monthlyIncome">¥0</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">月固定支出</span>
+        <button class="btn btn-outline btn-sm" onclick="openExpenseModal()">编辑</button>
+      </div>
+      <div class="big-number" style="font-size:var(--font-size-xl);color:var(--danger)" id="monthlyExpense">¥0</div>
+      <div style="margin-top:8px;font-size:var(--font-size-sm)">
+        可用于还债: <b style="color:var(--success)" id="availableForDebt">¥0</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan Page -->
+  <div class="page" id="page-plan">
+    <div style="font-weight:600;font-size:var(--font-size-lg);margin-bottom:16px">📋 还款规划</div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">选择还款策略</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="btn btn-outline btn-sm strategy-btn active" data-strategy="avalanche" onclick="selectStrategy('avalanche')">❄️ 雪崩法（省利息）</button>
+        <button class="btn btn-outline btn-sm strategy-btn" data-strategy="snowball" onclick="selectStrategy('snowball')">☃️ 雪球法（心理激励）</button>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="compare-card" id="compareCards">
+      <div class="compare-item recommended" id="compareAvalanche">
+        <div class="compare-label">❄️ 雪崩法</div>
+        <div class="compare-value" id="avalMonths">--</div>
+        <div style="font-size:var(--font-size-xs);color:var(--text-secondary)">预计还清</div>
+        <div style="font-size:var(--font-size-sm);color:var(--danger);margin-top:4px">利息: <span id="avalInterest">--</span></div>
+      </div>
+      <div class="compare-item" id="compareSnowball">
+        <div class="compare-label">☃️ 雪球法</div>
+        <div class="compare-value" id="snowMonths">--</div>
+        <div style="font-size:var(--font-size-xs);color:var(--text-secondary)">预计还清</div>
+        <div style="font-size:var(--font-size-sm);color:var(--danger);margin-top:4px">利息: <span id="snowInterest">--</span></div>
+      </div>
+    </div>
+
+    <!-- Monthly Plan -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">📅 逐月还款计划</div>
+      <div id="monthlyPlan" style="max-height:400px;overflow-y:auto">
+        <div class="empty-state"><p>请先添加债务和收支信息</p></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" onclick="printPlan()" style="margin-top:12px">🖨️ 打印还款计划</button>
+  </div>
+
+  <!-- Side Hustle Page -->
+  <div class="page" id="page-hustle">
+    <div style="font-weight:600;font-size:var(--font-size-lg);margin-bottom:16px">💼 副业推荐</div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">选择你的技能</div>
+      <div class="tag-group" id="skillTags"></div>
+      <button class="btn btn-primary btn-block" onclick="refreshHustles()" style="margin-top:12px">🔍 匹配副业项目</button>
+    </div>
+
+    <div id="hustleList">
+      <div class="empty-state">
+        <div class="empty-icon">💡</div>
+        <p>选择技能后点击"匹配副业项目"</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div class="page" id="page-settings">
+    <div style="font-weight:600;font-size:var(--font-size-lg);margin-bottom:16px">⚙️ 设置</div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">🔐 隐私设置</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span>默认隐藏金额</span>
+        <button class="btn btn-outline btn-sm" id="privacyToggle" onclick="togglePrivacy()">已开启</button>
+      </div>
+      <p class="form-hint">开启后，进入应用自动隐藏数字，点击👁️查看</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">🤖 智能识别设置</div>
+      <div class="form-group">
+        <label class="form-label">AI API Key（可选，用于高精度截图识别）</label>
+        <input class="form-input" id="apiKeyInput" type="password" placeholder="留空则使用离线OCR">
+        <p class="form-hint">你已配置的 DeepSeek API 可在此使用，提升识别准确率</p>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveApiKey()">💾 保存 API Key</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">📤 数据管理</div>
+      <div style="display:flex;gap:10px;flex-direction:column">
+        <button class="btn btn-outline btn-block" onclick="exportData()">📥 导出数据备份 (JSON)</button>
+        <button class="btn btn-outline btn-block" onclick="exportCSV()">📊 导出为 Excel/CSV</button>
+        <button class="btn btn-outline btn-block" onclick="document.getElementById('importFile').click()">📤 导入数据恢复</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn btn-outline btn-block" onclick="loadDemoData()">🎲 加载演示数据</button>
+        <button class="btn btn-danger btn-block" onclick="clearAllData()">🗑️ 清除所有数据</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:4px">关于清清松</div>
+      <p class="form-hint">v1.0 · 数据仅存储在您的设备 · 绝不上传服务器</p>
+      <p class="form-hint" style="margin-top:8px">🏆 每还清一笔债，你就离自由更近一步</p>
+    </div>
+  </div>
+
+  <!-- Bottom Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="tab-icon">🏠</span>
+      <span class="tab-label">首页</span>
+    </button>
+    <button class="tab-item" data-tab="debts" onclick="switchTab('debts')">
+      <span class="tab-icon">💰</span>
+      <span class="tab-label">债务</span>
+    </button>
+    <button class="tab-item" data-tab="plan" onclick="switchTab('plan')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">规划</span>
+    </button>
+    <button class="tab-item" data-tab="hustle" onclick="switchTab('hustle')">
+      <span class="tab-icon">💼</span>
+      <span class="tab-label">副业</span>
+    </button>
+    <button class="tab-item" data-tab="settings" onclick="switchTab('settings')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- Modals Container -->
+<div id="modals"></div>
+
+<!-- Hidden file input for screenshot -->
+<input type="file" id="screenshotInput" accept="image/*" multiple style="display:none" onchange="handleScreenshots(event)">
+
+<script>
+// ============ DATA LAYER ============
+const STORAGE_KEY = 'debt_planner_data';
+const SETTINGS_KEY = 'debt_planner_settings';
+
+function getDefaultData() {
+  return {
+    debts: [],
+    income: { salary: 0, side: 0, other: 0 },
+    expenses: { rent: 0, food: 0, transport: 0, phone: 0, daily: 0, other: 0 },
+    repaymentRecords: [], // {debtId, amount, date}
+    version: 1
+  };
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.version === 1) return data;
+    }
+  } catch(e) {}
+  return getDefaultData();
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { privacy: true, apiKey: '' };
+  } catch(e) { return { privacy: true, apiKey: '' }; }
+}
+
+function saveSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+let appData = loadData();
+let appSettings = loadSettings();
+let currentTab = 'dashboard';
+let privacyMode = appSettings.privacy;
+let currentStrategy = 'avalanche';
+let selectedSkills = [];
+
+// ============ UTILS ============
+function $(id) { return document.getElementById(id); }
+function qs(sel) { return document.querySelector(sel); }
+function qsa(sel) { return document.querySelectorAll(sel); }
+
+function formatMoney(n) {
+  if (n === 0) return '¥0';
+  if (Math.abs(n) < 10000) return '¥' + n.toLocaleString('zh-CN');
+  if (Math.abs(n) < 100000000) return '¥' + (n/10000).toFixed(2) + '万';
+  return '¥' + (n/100000000).toFixed(2) + '亿';
+}
+
+function formatMoneyNum(n) {
+  return n.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+
+function dateStr(d) {
+  const dd = new Date(d);
+  return `${dd.getFullYear()}年${dd.getMonth()+1}月${dd.getDate()}日`;
+}
+
+function daysBetween(d1, d2) {
+  return Math.ceil((new Date(d2) - new Date(d1)) / (1000*60*60*24));
+}
+
+function daysFromNow(d) {
+  return daysBetween(new Date(), d);
+}
+
+function showMoney(n) {
+  if (privacyMode) return '¥***';
+  return formatMoney(n);
+}
+
+function showMoneyNum(n) {
+  if (privacyMode) return '***';
+  return formatMoneyNum(n);
+}
+
+function showSnackbar(msg) {
+  const existing = qs('.snackbar');
+  if (existing) existing.remove();
+  const s = document.createElement('div');
+  s.className = 'snackbar';
+  s.textContent = msg;
+  document.body.appendChild(s);
+  setTimeout(() => s.remove(), 2500);
+}
+
+function confirm(msg) {
+  return window.confirm(msg);
+}
+
+// ============ TAB NAVIGATION ============
+function switchTab(tab) {
+  currentTab = tab;
+  qsa('.page').forEach(p => p.classList.remove('active'));
+  qsa('.tab-item').forEach(t => t.classList.remove('active'));
+  const page = $('page-' + tab);
+  if (page) page.classList.add('active');
+  const tabBtn = qs(`.tab-item[data-tab="${tab}"]`);
+  if (tabBtn) tabBtn.classList.add('active');
+
+  // Update header title
+  const titles = { dashboard: '清清松', debts: '债务管理', plan: '还款规划', hustle: '副业推荐', settings: '设置' };
+  $('headerTitle').textContent = titles[tab] || '清清松';
+
+  // Refresh content
+  if (tab === 'dashboard') refreshDashboard();
+  if (tab === 'debts') refreshDebtsPage();
+  if (tab === 'plan') refreshPlanPage();
+  if (tab === 'hustle') refreshHustlePage();
+
+  window.scrollTo(0, 0);
+}
+
+// ============ PRIVACY ============
+function togglePrivacy() {
+  privacyMode = !privacyMode;
+  appSettings.privacy = privacyMode;
+  saveSettings(appSettings);
+  const btn = $('privacyToggle');
+  btn.textContent = privacyMode ? '已开启' : '已关闭';
+  if (!privacyMode) btn.classList.add('active');
+  else btn.classList.remove('active');
+
+  // Update eye icon
+  const eyeBtn = $('eyeBtn');
+  if (privacyMode) { eyeBtn.textContent = '👁️'; eyeBtn.classList.remove('active'); }
+  else { eyeBtn.textContent = '👁️‍🗨️'; eyeBtn.classList.add('active'); }
+
+  if (currentTab === 'dashboard') refreshDashboard();
+  if (currentTab === 'debts') refreshDebtsPage();
+
+  showSnackbar(privacyMode ? '🔒 金额已隐藏' : '🔓 金额已显示');
+}
+
+function togglePrivacyQuick() {
+  privacyMode = !privacyMode;
+  appSettings.privacy = privacyMode;
+  saveSettings(appSettings);
+  const eyeBtn = $('eyeBtn');
+  if (privacyMode) { eyeBtn.textContent = '👁️'; eyeBtn.classList.remove('active'); }
+  else { eyeBtn.textContent = '👁️‍🗨️'; eyeBtn.classList.add('active'); }
+  if (currentTab === 'dashboard') refreshDashboard();
+  if (currentTab === 'debts') refreshDebtsPage();
+}
+
+// ============ CALCULATIONS ============
+function getTotalDebt() {
+  return appData.debts.reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
+}
+
+function getTotalOriginalDebt() {
+  return appData.debts.reduce((sum, d) => sum + d.totalAmount, 0);
+}
+
+function getTotalPaid() {
+  return appData.debts.reduce((sum, d) => sum + d.paidAmount, 0);
+}
+
+function getMonthlyIncome() {
+  return appData.income.salary + appData.income.side + appData.income.other;
+}
+
+function getMonthlyExpense() {
+  const e = appData.expenses;
+  return (e.rent||0) + (e.food||0) + (e.transport||0) + (e.phone||0) + (e.daily||0) + (e.other||0);
+}
+
+function getAvailableForDebt() {
+  return getMonthlyIncome() - getMonthlyExpense();
+}
+
+function getTotalMinPayment() {
+  return appData.debts.reduce((sum, d) => sum + (d.minPayment || 0), 0);
+}
+
+function getMinMonthlyExpense() {
+  // Minimum living expense (if user hasn't set expenses, use a default)
+  const e = getMonthlyExpense();
+  return e > 0 ? e : 2000; // default minimum living cost
+}
+
+// Repayment calculation engine
+function calcRepayment(strategy) {
+  const debts = appData.debts.map(d => ({
+    ...d,
+    remaining: d.totalAmount - d.paidAmount
+  })).filter(d => d.remaining > 0);
+
+  if (debts.length === 0) return { months: 0, totalInterest: 0, plan: [], totalPaid: 0 };
+
+  let available = getAvailableForDebt();
+  if (available <= 0) available = 1000; // fallback if income not set
+
+  // Sort by strategy
+  if (strategy === 'snowball') {
+    debts.sort((a, b) => a.remaining - b.remaining);
+  } else {
+    debts.sort((a, b) => b.annualRate - a.annualRate);
+  }
+
+  let month = 0;
+  const maxMonths = 600; // 50 years max
+  const plan = [];
+  let totalInterest = 0;
+  let totalPaid = 0;
+
+  while (debts.some(d => d.remaining > 0.01) && month < maxMonths) {
+    month++;
+    let monthAvailable = available;
+
+    // Pay minimum payments first
+    let minTotal = 0;
+    for (const d of debts) {
+      if (d.remaining > 0.01) {
+        const min = Math.min(d.minPayment || 0, d.remaining);
+        minTotal += min;
+      }
+    }
+
+    // If we can't even cover minimums, use what we have proportionally
+    if (minTotal > monthAvailable && minTotal > 0) {
+      for (const d of debts) {
+        if (d.remaining > 0.01) {
+          const min = Math.min(d.minPayment || 0, d.remaining);
+          const proportion = min / minTotal;
+          const pay = Math.min(monthAvailable * proportion, d.remaining);
+          d.remaining -= pay;
+          monthAvailable -= pay;
+          totalPaid += pay;
+        }
+      }
+    } else {
+      // Pay minimums, then extra to the target debt
+      for (const d of debts) {
+        if (d.remaining > 0.01) {
+          const min = Math.min(d.minPayment || 0, d.remaining);
+          d.remaining -= min;
+          monthAvailable -= min;
+          totalPaid += min;
+        }
+      }
+
+      // Extra payment to target (first in sorted list that still has debt)
+      if (monthAvailable > 0) {
+        for (const d of debts) {
+          if (d.remaining > 0.01) {
+            const extra = Math.min(monthAvailable, d.remaining);
+            d.remaining -= extra;
+            monthAvailable -= extra;
+            totalPaid += extra;
+            break; // Only pay extra to one debt at a time (the target)
+          }
+        }
+      }
+    }
+
+    // Calculate monthly interest
+    let monthInterest = 0;
+    for (const d of debts) {
+      if (d.remaining > 0.01) {
+        const monthlyRate = d.annualRate / 100 / 12;
+        const interest = d.remaining * monthlyRate;
+        d.remaining += interest;
+        monthInterest += interest;
+      }
+    }
+    totalInterest += monthInterest;
+
+    // Record plan entry
+    const totalRemaining = debts.reduce((s, d) => s + d.remaining, 0);
+    plan.push({
+      month,
+      paid: monthAvailable >= 0 ? (available - monthAvailable) : available,
+      interest: monthInterest,
+      remaining: totalRemaining,
+      debts: debts.map(d => ({ name: d.name, remaining: Math.max(0, d.remaining) }))
+    });
+
+    // Check if all paid
+    if (debts.every(d => d.remaining < 0.01)) break;
+  }
+
+  return {
+    months: month,
+    totalInterest: Math.round(totalInterest),
+    plan,
+    totalPaid: Math.round(totalPaid),
+    freedomDate: month > 0 ? new Date(Date.now() + month * 30 * 24 * 60 * 60 * 1000) : null
+  };
+}
+
+// ============ DASHBOARD ============
+function refreshDashboard() {
+  const totalDebt = getTotalDebt();
+  const totalOriginal = getTotalOriginalDebt();
+  const totalPaid = getTotalPaid();
+  const progress = totalOriginal > 0 ? (totalPaid / totalOriginal * 100) : 0;
+
+  $('debtCountBadge').textContent = appData.debts.length + '笔';
+
+  if (privacyMode) {
+    $('totalDebtAmount').textContent = '¥***';
+    $('totalDebtAmount').classList.add('blurred');
+    $('totalPaid').textContent = '¥***';
+    $('totalRemaining').textContent = '¥***';
+    $('dailyTarget').textContent = '¥***';
+    $('dailyTarget').classList.add('blurred');
+  } else {
+    $('totalDebtAmount').textContent = formatMoney(totalDebt);
+    $('totalDebtAmount').classList.remove('blurred');
+    $('totalPaid').textContent = formatMoney(totalPaid);
+    $('totalRemaining').textContent = formatMoney(totalDebt);
+    $('dailyTarget').classList.remove('blurred');
+  }
+
+  $('totalProgress').style.width = Math.min(progress, 100) + '%';
+
+  // Daily target
+  const available = getAvailableForDebt();
+  const minPayment = getTotalMinPayment();
+  const gap = minPayment - available;
+  const dailyTarget = gap > 0 ? gap / 30 : 0;
+  if (!privacyMode) {
+    $('dailyTarget').textContent = formatMoney(Math.round(dailyTarget));
+  }
+  $('dailyTargetLabel').textContent = gap > 0 ? '今日需要赚到（填补缺口）' : '今日缺口已覆盖 ✅';
+
+  const d = new Date();
+  $('dailyDate').textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+
+  // Freedom date
+  const result = calcRepayment(currentStrategy);
+  if (result.freedomDate && totalDebt > 0) {
+    $('freedomDate').textContent = dateStr(result.freedomDate);
+    const remainingDays = daysFromNow(result.freedomDate);
+    if (remainingDays > 0) {
+      $('freedomCountdown').textContent = `还剩 ${remainingDays} 天 · ${Math.ceil(remainingDays/30)} 个月`;
+    } else {
+      $('freedomCountdown').textContent = '🎉 恭喜！你已经无债一身轻！';
+    }
+  } else {
+    $('freedomDate').textContent = '--';
+    $('freedomCountdown').textContent = '请先添加债务信息';
+  }
+
+  // Next payment
+  const now = new Date();
+  const upcoming = appData.debts
+    .filter(d => (d.totalAmount - d.paidAmount) > 0 && d.paymentDay)
+    .map(d => {
+      let payDate = new Date(now.getFullYear(), now.getMonth(), d.paymentDay);
+      if (payDate < now) payDate = new Date(now.getFullYear(), now.getMonth()+1, d.paymentDay);
+      return { name: d.name, date: payDate, days: daysFromNow(payDate) };
+    })
+    .sort((a, b) => a.days - b.days);
+
+  const nextCard = $('nextPaymentCard');
+  if (upcoming.length > 0 && upcoming[0].days <= 30) {
+    nextCard.style.display = 'block';
+    const next = upcoming[0];
+    $('nextPaymentDays').textContent = next.days <= 3 ? '紧急!' : `${next.days}天后`;
+    $('nextPaymentDays').className = 'card-badge ' + (next.days <= 3 ? 'badge-danger' : 'badge-warning');
+    $('nextPaymentInfo').textContent = `${next.name} - ${dateStr(next.date)}`;
+  } else {
+    nextCard.style.display = 'none';
+  }
+
+  // Chart
+  drawTrendChart(result);
+
+  // Update eye btn state
+  const eyeBtn = $('eyeBtn');
+  if (privacyMode) { eyeBtn.textContent = '👁️'; eyeBtn.classList.remove('active'); }
+  else { eyeBtn.textContent = '👁️‍🗨️'; eyeBtn.classList.add('active'); }
+}
+
+function drawTrendChart(result) {
+  const canvas = $('trendChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Destroy previous chart if exists
+  if (canvas._chart) canvas._chart.destroy();
+
+  if (!result.plan || result.plan.length === 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#BDC3C7';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无数据', canvas.width/2, canvas.height/2);
+    return;
+  }
+
+  // Sample data points (max 24 for readability)
+  const step = Math.max(1, Math.floor(result.plan.length / 24));
+  const labels = [];
+  const data = [];
+  for (let i = 0; i < result.plan.length; i += step) {
+    labels.push(`第${result.plan[i].month}月`);
+    data.push(result.plan[i].remaining);
+  }
+  // Add final point
+  if (result.plan.length > 0) {
+    const last = result.plan[result.plan.length-1];
+    if (labels.length === 0 || labels[labels.length-1] !== `第${last.month}月`) {
+      labels.push(`第${last.month}月`);
+      data.push(last.remaining);
+    }
+  }
+
+  canvas._chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '剩余债务',
+        data,
+        borderColor: '#E67E22',
+        backgroundColor: 'rgba(230,126,34,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => formatMoney(ctx.parsed.y) }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => formatMoney(v), maxTicksLimit: 5 },
+          grid: { color: '#F0E6DA' }
+        },
+        x: {
+          ticks: { maxTicksLimit: 8, font: { size: 10 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// ============ DEBT MANAGEMENT ============
+function refreshDebtsPage() {
+  const container = $('debtList');
+  if (appData.debts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>还没有债务记录</p>
+        <p style="font-size:var(--font-size-xs);color:var(--text-light)">点击"添加"或使用截图导入</p>
+      </div>`;
+  } else {
+    container.innerHTML = appData.debts.map((d, i) => {
+      const remaining = d.totalAmount - d.paidAmount;
+      const progress = d.totalAmount > 0 ? (d.paidAmount / d.totalAmount * 100) : 0;
+      const typeClass = 'type-' + (d.type || 'other');
+      const typeLabel = { credit: '信用卡', loan: '网贷', family: '亲友', other: '其他' }[d.type] || '其他';
+      const rateInfo = d.annualRate > 0 ? `年利率 ${d.annualRate}%` : '无利息';
+      return `
+        <div class="debt-item ${typeClass}" onclick="openDebtModal(${i})">
+          <div class="debt-header">
+            <div>
+              <div class="debt-name">${d.name} <span style="font-size:10px;color:var(--text-light)">${typeLabel}</span></div>
+              <div class="debt-meta">${rateInfo} · 还款日: ${d.paymentDay || '--'}号 · 月最低: ${formatMoney(d.minPayment||0)}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="debt-amount">${showMoney(remaining)}</div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-secondary)">剩余</div>
+            </div>
+          </div>
+          <div class="progress-bar" style="margin-top:8px">
+            <div class="progress-fill" style="width:${progress}%"></div>
+          </div>
+          <div style="font-size:var(--font-size-xs);color:var(--text-secondary);margin-top:4px">
+            总额: ${showMoney(d.totalAmount)} · 已还: ${showMoney(d.paidAmount)} (${progress.toFixed(1)}%)
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  $('monthlyIncome').textContent = showMoney(getMonthlyIncome());
+  $('monthlyExpense').textContent = showMoney(getMonthlyExpense());
+  $('availableForDebt').textContent = showMoney(getAvailableForDebt());
+}
+
+function openDebtModal(index) {
+  const d = index !== undefined && index >= 0 ? appData.debts[index] : null;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">${d ? '编辑债务' : '添加债务'}</div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+
+      <div class="form-group">
+        <label class="form-label">债务名称</label>
+        <input class="form-input" id="debtName" value="${d ? d.name : ''}" placeholder="如：招行信用卡、花呗">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">类型</label>
+        <select class="form-select" id="debtType">
+          <option value="credit" ${d && d.type==='credit'?'selected':''}>信用卡</option>
+          <option value="loan" ${d && d.type==='loan'?'selected':''}>网贷/消费贷</option>
+          <option value="family" ${d && d.type==='family'?'selected':''}>亲友借款</option>
+          <option value="other" ${d && d.type==='other'?'selected':''}>其他</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">总金额</label>
+          <input class="form-input" id="debtAmount" type="number" value="${d ? d.totalAmount : ''}" placeholder="元">
+        </div>
+        <div class="form-group">
+          <label class="form-label">已还金额</label>
+          <input class="form-input" id="debtPaid" type="number" value="${d ? d.paidAmount : '0'}" placeholder="元">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">年利率 (%)</label>
+          <input class="form-input" id="debtRate" type="number" step="0.01" value="${d ? d.annualRate : ''}" placeholder="如：18.25">
+        </div>
+        <div class="form-group">
+          <label class="form-label">最低月还款</label>
+          <input class="form-input" id="debtMinPay" type="number" value="${d ? d.minPayment : ''}" placeholder="元">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">每月还款日</label>
+        <input class="form-input" id="debtPayDay" type="number" min="1" max="28" value="${d ? d.paymentDay||'' : ''}" placeholder="1-28号">
+        <p class="form-hint">填入账单还款日期，我们会在到日前提醒你</p>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="saveDebt(${index!==undefined?index:-1})">💾 保存</button>
+      ${d ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="deleteDebt(${index});this.closest('.modal-overlay').remove()">🗑️ 删除这笔债务</button>` : ''}
+    </div>`;
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.remove();
+  });
+
+  $('modals').appendChild(modal);
+}
+
+function saveDebt(editIndex) {
+  const debt = {
+    id: editIndex >= 0 ? appData.debts[editIndex].id : Date.now().toString(),
+    name: $('debtName').value.trim() || '未命名债务',
+    type: $('debtType').value,
+    totalAmount: parseFloat($('debtAmount').value) || 0,
+    paidAmount: parseFloat($('debtPaid').value) || 0,
+    annualRate: parseFloat($('debtRate').value) || 0,
+    minPayment: parseFloat($('debtMinPay').value) || 0,
+    paymentDay: parseInt($('debtPayDay').value) || 0,
+    createdAt: editIndex >= 0 ? appData.debts[editIndex].createdAt : new Date().toISOString()
+  };
+
+  if (debt.totalAmount <= 0) {
+    showSnackbar('请输入总金额');
+    return;
+  }
+
+  if (editIndex >= 0) {
+    appData.debts[editIndex] = debt;
+  } else {
+    appData.debts.push(debt);
+  }
+
+  saveData(appData);
+  qsa('.modal-overlay').forEach(m => m.remove());
+  refreshDebtsPage();
+  refreshDashboard();
+  showSnackbar(editIndex >= 0 ? '✅ 债务已更新' : '✅ 债务已添加');
+}
+
+function deleteDebt(index) {
+  if (!confirm('确定删除这笔债务吗？')) return;
+  appData.debts.splice(index, 1);
+  saveData(appData);
+  refreshDebtsPage();
+  refreshDashboard();
+  showSnackbar('已删除');
+}
+
+// ============ INCOME / EXPENSE ============
+function openIncomeModal() {
+  const inc = appData.income;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">月收入</div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div class="form-group"><label class="form-label">工资收入</label><input class="form-input" id="incSalary" type="number" value="${inc.salary||''}" placeholder="元/月"></div>
+      <div class="form-group"><label class="form-label">副业收入（月均）</label><input class="form-input" id="incSide" type="number" value="${inc.side||''}" placeholder="元/月"></div>
+      <div class="form-group"><label class="form-label">其他收入</label><input class="form-input" id="incOther" type="number" value="${inc.other||''}" placeholder="元/月"></div>
+      <button class="btn btn-primary btn-block" onclick="saveIncome()">💾 保存</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  $('modals').appendChild(modal);
+}
+
+function saveIncome() {
+  appData.income = {
+    salary: parseFloat($('incSalary').value) || 0,
+    side: parseFloat($('incSide').value) || 0,
+    other: parseFloat($('incOther').value) || 0
+  };
+  saveData(appData);
+  qsa('.modal-overlay').forEach(m => m.remove());
+  refreshDebtsPage();
+  refreshDashboard();
+  showSnackbar('✅ 收入已更新');
+}
+
+function openExpenseModal() {
+  const exp = appData.expenses;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">月固定支出</div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <div class="form-row"><div class="form-group"><label class="form-label">房租</label><input class="form-input" id="expRent" type="number" value="${exp.rent||''}" placeholder="元"></div><div class="form-group"><label class="form-label">餐饮</label><input class="form-input" id="expFood" type="number" value="${exp.food||''}" placeholder="元"></div></div>
+      <div class="form-row"><div class="form-group"><label class="form-label">交通</label><input class="form-input" id="expTransport" type="number" value="${exp.transport||''}" placeholder="元"></div><div class="form-group"><label class="form-label">通讯</label><input class="form-input" id="expPhone" type="number" value="${exp.phone||''}" placeholder="元"></div></div>
+      <div class="form-row"><div class="form-group"><label class="form-label">日用品</label><input class="form-input" id="expDaily" type="number" value="${exp.daily||''}" placeholder="元"></div><div class="form-group"><label class="form-label">其他</label><input class="form-input" id="expOther" type="number" value="${exp.other||''}" placeholder="元"></div></div>
+      <button class="btn btn-primary btn-block" onclick="saveExpense()">💾 保存</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  $('modals').appendChild(modal);
+}
+
+function saveExpense() {
+  appData.expenses = {
+    rent: parseFloat($('expRent').value) || 0,
+    food: parseFloat($('expFood').value) || 0,
+    transport: parseFloat($('expTransport').value) || 0,
+    phone: parseFloat($('expPhone').value) || 0,
+    daily: parseFloat($('expDaily').value) || 0,
+    other: parseFloat($('expOther').value) || 0
+  };
+  saveData(appData);
+  qsa('.modal-overlay').forEach(m => m.remove());
+  refreshDebtsPage();
+  refreshDashboard();
+  showSnackbar('✅ 支出已更新');
+}
+
+// ============ PLAN PAGE ============
+function selectStrategy(s) {
+  currentStrategy = s;
+  qsa('.strategy-btn').forEach(b => b.classList.remove('active'));
+  qs(`.strategy-btn[data-strategy="${s}"]`).classList.add('active');
+  refreshPlanPage();
+  refreshDashboard();
+}
+
+function refreshPlanPage() {
+  const aval = calcRepayment('avalanche');
+  const snow = calcRepayment('snowball');
+
+  $('avalMonths').textContent = aval.months > 0 ? `${Math.ceil(aval.months)} 个月` : '--';
+  $('avalInterest').textContent = formatMoney(aval.totalInterest);
+  $('snowMonths').textContent = snow.months > 0 ? `${Math.ceil(snow.months)} 个月` : '--';
+  $('snowInterest').textContent = formatMoney(snow.totalInterest);
+
+  // Highlight recommended
+  const avalDiv = $('compareAvalanche');
+  const snowDiv = $('compareSnowball');
+  avalDiv.classList.remove('recommended');
+  snowDiv.classList.remove('recommended');
+  if (aval.months > 0 && snow.months > 0) {
+    if (aval.totalInterest <= snow.totalInterest) {
+      avalDiv.classList.add('recommended');
+    } else {
+      snowDiv.classList.add('recommended');
+    }
+  }
+
+  // Monthly plan
+  const result = currentStrategy === 'avalanche' ? aval : snow;
+  const planDiv = $('monthlyPlan');
+  if (!result.plan || result.plan.length === 0) {
+    planDiv.innerHTML = '<div class="empty-state"><p>请先添加债务和收支信息</p></div>';
+    return;
+  }
+
+  // Show first 24 months
+  const displayPlan = result.plan.slice(0, 24);
+  planDiv.innerHTML = displayPlan.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:var(--font-size-sm)">
+      <span style="font-weight:600">第${p.month}月</span>
+      <span style="color:var(--success)">还 ${formatMoney(p.paid)}</span>
+      <span style="color:var(--danger);font-size:var(--font-size-xs)">息 ${formatMoney(Math.round(p.interest))}</span>
+      <span>剩余 <b>${formatMoney(p.remaining)}</b></span>
+    </div>
+  `).join('') + (result.plan.length > 24 ? `<p style="text-align:center;color:var(--text-secondary);margin-top:8px">... 还有 ${result.plan.length - 24} 个月</p>` : '');
+}
+
+function printPlan() {
+  const result = calcRepayment(currentStrategy);
+  if (!result.plan || result.plan.length === 0) {
+    showSnackbar('请先添加债务信息');
+    return;
+  }
+
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html><head><meta charset="UTF-8"><title>还款计划</title>
+    <style>body{font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto}
+    h1{color:#E67E22} table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{padding:10px;border-bottom:1px solid #ddd;text-align:right}
+    th{background:#FFF8F0;font-weight:600}
+    .summary{background:#FDEBD0;padding:16px;border-radius:12px;margin:16px 0}
+    </style></head><body>
+    <h1>📋 负债还款计划</h1>
+    <div class="summary">
+      <p>策略: ${currentStrategy==='avalanche'?'雪崩法（优先还高利率）':'雪球法（优先还小额）'}</p>
+      <p>预计清债: ${Math.ceil(result.months)} 个月 · 总利息: ${formatMoney(result.totalInterest)}</p>
+      <p>生成日期: ${dateStr(new Date())}</p>
+    </div>
+    <table><thead><tr><th>月份</th><th>当月还款</th><th>当月利息</th><th>剩余债务</th></tr></thead><tbody>
+    ${result.plan.slice(0, 60).map(p => `<tr><td>第${p.month}月</td><td>${formatMoney(p.paid)}</td><td>${formatMoney(Math.round(p.interest))}</td><td>${formatMoney(p.remaining)}</td></tr>`).join('')}
+    </tbody></table></body></html>`);
+  w.document.close();
+}
+
+// ============ SIDE HUSTLE ============
+const ALL_SKILLS = [
+  { id: 'video-edit', name: '短视频剪辑', icon: '🎬', cat: 'video' },
+  { id: 'shoot', name: '口播拍摄', icon: '📹', cat: 'video' },
+  { id: 'live-clip', name: '直播切片', icon: '✂️', cat: 'video' },
+  { id: 'copywriting', name: '文案写作', icon: '✍️', cat: 'writing' },
+  { id: 'social-post', name: '小红书文案', icon: '📕', cat: 'writing' },
+  { id: 'gzh-edit', name: '公众号编辑', icon: '📰', cat: 'writing' },
+  { id: 'acct-ops', name: '账号运营', icon: '📊', cat: 'ops' },
+  { id: 'data', name: '数据分析', icon: '📈', cat: 'ops' },
+  { id: 'private-domain', name: '私域维护', icon: '💬', cat: 'ops' },
+  { id: 'typing', name: '打字录入', icon: '⌨️', cat: 'general' },
+  { id: 'customer-svc', name: '在线客服', icon: '🎧', cat: 'general' },
+  { id: 'delivery', name: '外卖/跑腿', icon: '🛵', cat: 'general' },
+  { id: 'wenwan', name: '文玩编绳', icon: '🧶', cat: 'craft' },
+  { id: 'accessory', name: '配饰设计', icon: '💎', cat: 'craft' },
+];
+
+const SIDE_HUSTLES = [
+  { name: '短视频代剪辑', income: '50-200元/条', skills: ['video-edit'], channels: '闲鱼、猪八戒、小红书接单', settlement: '日结/单结', difficulty: 2, cost: '0元', script: '你好，看到你在找视频剪辑，我有X年剪辑经验，熟练剪映/PR，可以先试剪一条，满意再合作。' },
+  { name: '直播切片外包', income: '30-80元/条', skills: ['video-edit','live-clip'], channels: '抖音创作者群、淘宝、闲鱼', settlement: '日结/周结', difficulty: 1, cost: '0元', script: '我能帮你做直播切片，快速出片，带商品链接，日更3-5条没问题。' },
+  { name: '小红书文案代写', income: '30-100元/篇', skills: ['copywriting','social-post'], channels: '闲鱼、豆瓣稿费银行、微信接单群', settlement: '篇结', difficulty: 2, cost: '0元', script: '我擅长小红书爆款文案，熟悉平台调性，可以提供过往作品，转化率有数据支撑。' },
+  { name: '公众号文章代写', income: '100-500元/篇', skills: ['copywriting','gzh-edit'], channels: '猪八戒、自由人协作平台、知乎', settlement: '篇结/周结', difficulty: 3, cost: '0元', script: '我熟悉公众号排版和写文风格，能产出原创深度文章，可包月合作。' },
+  { name: '短视频文案脚本', income: '20-50元/条', skills: ['copywriting','social-post'], channels: '淘宝、闲鱼、QQ接单群', settlement: '日结', difficulty: 1, cost: '0元', script: '我能根据你的账号定位写短视频脚本，含开头钩子+中间内容+结尾引导，提高完播率。' },
+  { name: '账号代运营', income: '1000-3000元/月', skills: ['acct-ops','social-post','copywriting'], channels: 'BOSS直聘、猪八戒、熟人推荐', settlement: '月结', difficulty: 3, cost: '0元', script: '我有X年账号运营经验，熟悉抖音/小红书算法，能独立完成内容策划和数据分析。' },
+  { name: '文玩编绳定制', income: '15-50元/条', skills: ['wenwan'], channels: '闲鱼、微信朋友圈、文玩社群', settlement: '日结/单结', difficulty: 2, cost: '材料费约100元', script: '手工编绳定制，款式可指定，文玩手串换绳、设计款编绳均可。' },
+  { name: '原创配饰设计', income: '30-200元/件', skills: ['accessory','wenwan'], channels: '闲鱼、淘宝、小红书开店', settlement: '单结', difficulty: 3, cost: '材料费约200元', script: '原创文玩配饰，每件都是孤品，支持定制，可搭配穿搭建议。' },
+  { name: '数据标注/录入', income: '50-150元/天', skills: ['typing','data'], channels: '京东众智、阿里众包、百度众测', settlement: '日结/周结', difficulty: 1, cost: '0元', script: '' },
+  { name: '在线客服（远程）', income: '80-200元/天', skills: ['customer-svc','typing'], channels: 'BOSS直聘、兼职猫、青团社', settlement: '日结/周结', difficulty: 2, cost: '0元', script: '' },
+  { name: '同城跑腿/外卖', income: '100-300元/天', skills: ['delivery'], channels: '美团众包、蜂鸟众包、闪送', settlement: '日结', difficulty: 2, cost: '自备电动车', script: '' },
+  { name: '私域社群维护', income: '500-2000元/月', skills: ['private-domain','customer-svc'], channels: 'BOSS直聘、熟人推荐、微信群', settlement: '月结/周结', difficulty: 2, cost: '0元', script: '我有社群运营经验，能维护微信群活跃度，引导成交转化。' },
+  { name: '电商详情页文案', income: '30-80元/条', skills: ['copywriting'], channels: '淘宝、猪八戒、闲鱼', settlement: '单结', difficulty: 2, cost: '0元', script: '我能写转化率高的电商文案，包括标题、卖点提炼、详情描述。' },
+  { name: '配音/有声书录制', income: '50-200元/小时', skills: [], channels: '喜马拉雅、懒人听书、QQ接单群', settlement: '单结', difficulty: 2, cost: '需要安静环境和基础录音设备', script: '' },
+  { name: '自媒体账号孵化', income: '不定（长期）', skills: ['acct-ops','social-post','copywriting','video-edit'], channels: '自主运营', settlement: '月结（广告/带货）', difficulty: 4, cost: '0元（时间投入）', script: '结合你的文玩专业知识，做垂类账号，积累粉丝后接广告或带货。你已经在做这个了！' },
+];
+
+function refreshHustlePage() {
+  // Render skill tags
+  $('skillTags').innerHTML = ALL_SKILLS.map(s => `
+    <span class="tag ${selectedSkills.includes(s.id)?'selected':''}" data-skill="${s.id}" onclick="toggleSkill('${s.id}')">${s.icon} ${s.name}</span>
+  `).join('');
+}
+
+function toggleSkill(id) {
+  const idx = selectedSkills.indexOf(id);
+  if (idx >= 0) selectedSkills.splice(idx, 1);
+  else selectedSkills.push(id);
+  refreshHustlePage();
+}
+
+function refreshHustles() {
+  const list = $('hustleList');
+  if (selectedSkills.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">💡</div><p>请先选择你的技能</p></div>';
+    return;
+  }
+
+  const scored = SIDE_HUSTLES.map(h => {
+    if (h.skills.length === 0) return { ...h, score: 0 };
+    const matchCount = h.skills.filter(s => selectedSkills.includes(s)).length;
+    const score = h.skills.length > 0 ? matchCount / h.skills.length : 0;
+    return { ...h, score, matchCount };
+  }).sort((a, b) => {
+    // Sort by score first, then by difficulty (easier first)
+    if (b.score !== a.score) return b.score - a.score;
+    return a.difficulty - b.difficulty;
+  });
+
+  list.innerHTML = scored.map(h => {
+    const matchPercent = Math.round(h.score * 100);
+    const hasMatch = h.score > 0;
+    return `
+      <div class="hustle-card">
+        <div class="hustle-header">
+          <span class="hustle-title">${h.name} ${hasMatch ? `<span class="hustle-match">匹配${matchPercent}%</span>` : ''}</span>
+          <span class="hustle-income">${h.income}</span>
+        </div>
+        <div class="hustle-tags">
+          ${h.skills.map(s => {
+            const skill = ALL_SKILLS.find(sk => sk.id === s);
+            return skill ? `<span>${skill.icon} ${skill.name}</span>` : '';
+          }).join('')}
+          <span style="background:var(--bg);color:var(--text-secondary)">${h.settlement}</span>
+          <span style="background:var(--bg);color:var(--text-secondary)">难度: ${'⭐'.repeat(h.difficulty)}</span>
+        </div>
+        <div class="hustle-channels">
+          📍 ${h.channels}
+          ${h.cost !== '0元' ? ` · 💰 启动: ${h.cost}` : ''}
+        </div>
+        ${h.script ? `<div style="margin-top:8px;background:var(--warning-light);padding:8px 12px;border-radius:8px;font-size:var(--font-size-xs);color:var(--text)"><b>💬 接单话术:</b> "${h.script}"</div>` : ''}
+      </div>`;
+  }).join('');
+
+  if (scored.filter(h => h.score > 0).length === 0) {
+    list.innerHTML += '<div class="empty-state" style="margin-top:16px"><p>没有完美匹配的副业，但以下项目也可以尝试 👇</p></div>';
+  }
+}
+
+// ============ SCREENSHOT IMPORT ============
+function openScreenshotImport() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📸 截图导入债务</div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <p style="text-align:center;color:var(--text-secondary);margin-bottom:16px">
+        截图花呗、借呗、信用卡账单等页面，<br>系统自动识别金额和日期
+      </p>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('screenshotInput').click()">
+        <div class="upload-icon">📤</div>
+        <p>点击上传或拖拽截图</p>
+        <p style="font-size:10px;color:var(--text-light)">支持 JPG/PNG，可多选</p>
+      </div>
+      <div id="ocrProgress" style="text-align:center;margin-top:12px;display:none"></div>
+      <p class="form-hint" style="text-align:center;margin-top:12px">
+        🔒 截图不会上传服务器，识别过程在你的设备上完成<br>
+        如配置了 AI API Key，识别精度更高
+      </p>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+
+  // Drag & drop support
+  modal.querySelector('#uploadZone').addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+  });
+  modal.querySelector('#uploadZone').addEventListener('dragleave', function(e) {
+    this.classList.remove('drag-over');
+  });
+  modal.querySelector('#uploadZone').addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+      processScreenshots(e.dataTransfer.files, modal);
+    }
+  });
+
+  // Also handle direct click via the global input
+  window._screenshotModal = modal;
+
+  $('modals').appendChild(modal);
+}
+
+function handleScreenshots(event) {
+  const files = event.target.files;
+  if (files.length > 0 && window._screenshotModal) {
+    processScreenshots(files, window._screenshotModal);
+  }
+  event.target.value = '';
+}
+
+async function processScreenshots(files, modal) {
+  const progressDiv = modal.querySelector('#ocrProgress');
+  progressDiv.style.display = 'block';
+  progressDiv.innerHTML = '<p>🔍 正在识别中...</p>';
+
+  let allResults = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    progressDiv.innerHTML = `<p>🔍 正在处理: ${file.name} (${i+1}/${files.length})</p>`;
+
+    try {
+      // Compress image
+      const compressed = await compressImage(file);
+
+      let extracted = null;
+
+      // Try AI API first if key is set
+      if (appSettings.apiKey) {
+        try {
+          extracted = await aiRecognize(compressed);
+        } catch(e) {
+          console.log('AI识别失败，回退到离线OCR:', e.message);
+        }
+      }
+
+      // Fallback to Tesseract.js
+      if (!extracted) {
+        extracted = await ocrRecognize(compressed);
+      }
+
+      if (extracted) {
+        allResults.push({ fileName: file.name, ...extracted, imageUrl: compressed });
+      }
+    } catch(e) {
+      console.error('处理失败:', file.name, e);
+    }
+  }
+
+  // Show results form
+  showOcrResults(allResults, modal);
+}
+
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        const maxDim = 1200;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = h * maxDim / w; w = maxDim; }
+          else { w = w * maxDim / h; h = maxDim; }
+        }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function ocrRecognize(dataUrl) {
+  try {
+    const worker = await Tesseract.recognize(dataUrl, 'chi_sim+eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          const progress = Math.round(m.progress * 100);
+          const progressDiv = $('ocrProgress');
+          if (progressDiv) progressDiv.innerHTML = `<p>🔍 离线OCR识别中... ${progress}%</p>`;
+        }
+      }
+    });
+    return parseOcrText(worker.data.text);
+  } catch(e) {
+    console.error('OCR error:', e);
+    return null;
+  }
+}
+
+async function aiRecognize(dataUrl) {
+  // Use Anthropic-compatible API (DeepSeek) for vision recognition
+  const baseUrl = 'https://api.deepseek.com/anthropic';
+  const response = await fetch(`${baseUrl}/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': appSettings.apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      max_tokens: 500,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: dataUrl }
+          },
+          {
+            type: 'text',
+            text: `请从这张账单截图中提取以下信息，以JSON格式返回（找不到的字段填null）：
+{
+  "name": "贷款/信用卡名称",
+  "totalAmount": 数字（总欠款金额，不含￥和逗号）,
+  "minPayment": 数字（最低还款金额）,
+  "annualRate": 数字（年利率，百分比数值）,
+  "paymentDay": 数字（还款日是几号）,
+  "type": "credit/loan/family/other"
+}
+只返回JSON，不要其他文字。`
+          }
+        ]
+      }]
+    })
+  });
+
+  if (!response.ok) throw new Error('API request failed');
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '';
+  // Try to extract JSON
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]);
+  }
+  return null;
+}
+
+function parseOcrText(text) {
+  // Parse OCR text to extract debt info
+  const result = { name: null, totalAmount: null, minPayment: null, annualRate: null, paymentDay: null, type: 'other' };
+
+  // Look for common patterns in Chinese loan/bill screenshots
+  // Amount patterns: ￥xxxx.xx, ¥xxxx, 元
+  const amounts = text.match(/(?:¥|￥|元)\s*[\d,]+\.?\d*/g) || [];
+  const plainAmounts = text.match(/(?:剩余|待还|欠款|余额|账单|金额|总计|合计)[^\d]*(\d[\d,]*(?:\.\d{2})?)/g) || [];
+
+  // Find amount numbers
+  const allNums = text.match(/\d[\d,]*(?:\.\d{2})?/g) || [];
+  const nums = allNums.map(n => parseFloat(n.replace(/,/g, ''))).filter(n => n > 1);
+
+  if (nums.length > 0) {
+    // The largest number is likely total debt
+    result.totalAmount = Math.max(...nums.filter(n => n > 100));
+
+    // Medium numbers could be min payment
+    const mids = nums.filter(n => n > 10 && n < result.totalAmount * 0.5);
+    if (mids.length > 0) result.minPayment = Math.min(...mids);
+  }
+
+  // Rate patterns
+  const rateMatch = text.match(/(?:利率|年化|年率)[^\d]*(\d+\.?\d*)\s*%/);
+  if (rateMatch) result.annualRate = parseFloat(rateMatch[1]);
+
+  // Payment day
+  const dayMatch = text.match(/(?:还款日|到期|最后还款日|账单日)[^\d]*(\d{1,2})\s*[日号]/);
+  if (dayMatch) result.paymentDay = parseInt(dayMatch[1]);
+
+  // Name detection
+  if (text.includes('花呗') || text.includes('花呗')) result.name = '花呗';
+  else if (text.includes('借呗')) result.name = '借呗';
+  else if (text.includes('微粒贷')) result.name = '微粒贷';
+  else if (text.includes('京东') && text.includes('白条')) result.name = '京东白条';
+  else if (text.includes('美团')) result.name = '美团月付';
+  else if (text.includes('招商') || text.includes('招行')) result.name = '招商银行信用卡';
+
+  // Type
+  if (text.includes('信用卡') || text.includes('银行')) result.type = 'credit';
+  else if (text.includes('借款') || text.includes('借据') || text.includes('贷')) result.type = 'loan';
+
+  return result;
+}
+
+function showOcrResults(results, modal) {
+  if (results.length === 0) {
+    modal.innerHTML += '<p style="text-align:center;color:var(--danger);margin-top:16px">未能识别到有效信息，请手动添加</p>';
+    return;
+  }
+
+  let html = '<div style="margin-top:16px"><h3 style="margin-bottom:12px">识别结果（请确认修正后保存）</h3>';
+
+  results.forEach((r, i) => {
+    html += `
+    <div class="card" style="background:var(--bg)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <img src="${r.imageUrl}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">
+        <div>
+          <b>${r.fileName}</b>
+          <div style="font-size:var(--font-size-xs);color:var(--text-secondary)">识别结果</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">名称</label>
+          <input class="form-input ocr-name" value="${r.name||''}" placeholder="债务名称">
+        </div>
+        <div class="form-group">
+          <label class="form-label">总金额</label>
+          <input class="form-input ocr-amount" type="number" value="${r.totalAmount||''}" placeholder="元">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">年利率(%)</label>
+          <input class="form-input ocr-rate" type="number" step="0.01" value="${r.annualRate||''}" placeholder="如：18.25">
+        </div>
+        <div class="form-group">
+          <label class="form-label">最低月还款</label>
+          <input class="form-input ocr-minpay" type="number" value="${r.minPayment||''}" placeholder="元">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">还款日</label>
+          <input class="form-input ocr-payday" type="number" min="1" max="28" value="${r.paymentDay||''}" placeholder="号">
+        </div>
+        <div class="form-group">
+          <label class="form-label">类型</label>
+          <select class="form-select ocr-type">
+            <option value="credit" ${r.type==='credit'?'selected':''}>信用卡</option>
+            <option value="loan" ${r.type==='loan'?'selected':''}>网贷</option>
+            <option value="family" ${r.type==='family'?'selected':''}>亲友</option>
+            <option value="other" ${r.type==='other'?'selected':''}>其他</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `
+    <button class="btn btn-primary btn-block" onclick="saveOcrResults(${results.length})" style="margin-top:12px">💾 全部保存</button>
+  </div>`;
+
+  // Replace progress with results
+  const progressDiv = modal.querySelector('#ocrProgress');
+  if (progressDiv) {
+    progressDiv.outerHTML = html;
+  }
+}
+
+function saveOcrResults(count) {
+  const names = qsa('.ocr-name');
+  const amounts = qsa('.ocr-amount');
+  const rates = qsa('.ocr-rate');
+  const minpays = qsa('.ocr-minpay');
+  const paydays = qsa('.ocr-payday');
+  const types = qsa('.ocr-type');
+
+  let saved = 0;
+  for (let i = 0; i < count; i++) {
+    const amount = parseFloat(amounts[i]?.value);
+    if (!amount || amount <= 0) continue;
+
+    appData.debts.push({
+      id: Date.now().toString() + '_' + i,
+      name: names[i]?.value?.trim() || '导入债务',
+      type: types[i]?.value || 'other',
+      totalAmount: amount,
+      paidAmount: 0,
+      annualRate: parseFloat(rates[i]?.value) || 0,
+      minPayment: parseFloat(minpays[i]?.value) || 0,
+      paymentDay: parseInt(paydays[i]?.value) || 0,
+      createdAt: new Date().toISOString()
+    });
+    saved++;
+  }
+
+  saveData(appData);
+  qsa('.modal-overlay').forEach(m => m.remove());
+  refreshDebtsPage();
+  refreshDashboard();
+  showSnackbar(`✅ 已保存 ${saved} 笔债务`);
+}
+
+// ============ API KEY ============
+function saveApiKey() {
+  const key = $('apiKeyInput').value.trim();
+  // Use existing env key if input is empty
+  appSettings.apiKey = key || '';
+  saveSettings(appSettings);
+  showSnackbar(key ? '✅ API Key 已保存' : '✅ 将使用离线OCR模式');
+}
+
+// ============ DATA IMPORT/EXPORT ============
+function exportData() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `负债数据备份_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showSnackbar('✅ 数据已导出');
+}
+
+function exportCSV() {
+  let csv = '名称,类型,总金额,已还金额,剩余金额,年利率,最低月还款,还款日\n';
+  appData.debts.forEach(d => {
+    csv += `${d.name},${d.type},${d.totalAmount},${d.paidAmount},${d.totalAmount-d.paidAmount},${d.annualRate}%,${d.minPayment},"${d.paymentDay||''}"\n`;
+  });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `负债明细_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showSnackbar('✅ CSV 已导出');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.debts || !data.version) throw new Error('Invalid format');
+      if (!confirm(`将导入 ${data.debts.length} 笔债务数据，覆盖现有数据，确定继续？`)) return;
+      appData = data;
+      saveData(appData);
+      refreshDashboard();
+      refreshDebtsPage();
+      showSnackbar('✅ 数据已恢复');
+    } catch(err) {
+      showSnackbar('❌ 文件格式不正确');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function loadDemoData() {
+  if (!confirm('将加载演示数据（会覆盖现有数据），确定继续？')) return;
+  appData = {
+    debts: [
+      { id: 'd1', name: '招商银行信用卡', type: 'credit', totalAmount: 15000, paidAmount: 3000, annualRate: 18.25, minPayment: 1500, paymentDay: 15, createdAt: '2024-01-01' },
+      { id: 'd2', name: '花呗', type: 'loan', totalAmount: 8000, paidAmount: 2000, annualRate: 14.6, minPayment: 800, paymentDay: 10, createdAt: '2024-02-01' },
+      { id: 'd3', name: '借呗', type: 'loan', totalAmount: 20000, paidAmount: 5000, annualRate: 21.9, minPayment: 2000, paymentDay: 20, createdAt: '2024-03-01' },
+      { id: 'd4', name: '微粒贷', type: 'loan', totalAmount: 12000, paidAmount: 0, annualRate: 18, minPayment: 1200, paymentDay: 5, createdAt: '2024-04-01' },
+      { id: 'd5', name: '跟朋友借的', type: 'family', totalAmount: 5000, paidAmount: 1000, annualRate: 0, minPayment: 500, paymentDay: 0, createdAt: '2024-05-01' },
+    ],
+    income: { salary: 8000, side: 2000, other: 0 },
+    expenses: { rent: 2500, food: 1500, transport: 300, phone: 100, daily: 500, other: 600 },
+    repaymentRecords: [],
+    version: 1
+  };
+  saveData(appData);
+  refreshDashboard();
+  refreshDebtsPage();
+  refreshPlanPage();
+  showSnackbar('✅ 演示数据已加载');
+}
+
+function clearAllData() {
+  if (!confirm('确定清除所有数据吗？此操作不可恢复！\n建议先导出备份。')) return;
+  if (!confirm('再次确认：清除所有债务、收支数据？')) return;
+  appData = getDefaultData();
+  saveData(appData);
+  refreshDashboard();
+  refreshDebtsPage();
+  refreshPlanPage();
+  showSnackbar('🗑️ 所有数据已清除');
+}
+
+// ============ EVENT BINDINGS ============
+$('eyeBtn').addEventListener('click', togglePrivacyQuick);
+
+$('addBtn').addEventListener('click', function() {
+  const menu = document.createElement('div');
+  menu.className = 'modal-overlay';
+  menu.style.alignItems = 'center';
+  menu.innerHTML = `
+    <div class="modal" style="border-radius:20px">
+      <div class="modal-title">快速添加</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline btn-block" onclick="openScreenshotImport();this.closest('.modal-overlay').remove()">📸 截图导入债务</button>
+        <button class="btn btn-outline btn-block" onclick="this.closest('.modal-overlay').remove();switchTab('debts');setTimeout(()=>openDebtModal(),100)">📝 手动添加债务</button>
+        <button class="btn btn-outline btn-block" onclick="this.closest('.modal-overlay').remove();switchTab('debts');setTimeout(()=>openIncomeModal(),100)">💵 录入收入</button>
+        <button class="btn btn-outline btn-block" onclick="this.closest('.modal-overlay').remove();switchTab('debts');setTimeout(()=>openExpenseModal(),100)">💸 录入支出</button>
+        <button class="btn btn-sm" onclick="this.closest('.modal-overlay').remove()">取消</button>
+      </div>
+    </div>`;
+  menu.addEventListener('click', e => { if (e.target===menu) menu.remove(); });
+  $('modals').appendChild(menu);
+});
+
+// Header scroll effect
+window.addEventListener('scroll', function() {
+  $('header').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// Initialize
+function init() {
+  // Apply privacy setting
+  privacyMode = appSettings.privacy;
+
+  // Load API key from settings
+  if (appSettings.apiKey) {
+    $('apiKeyInput').value = appSettings.apiKey;
+  }
+
+  // Set privacy toggle text
+  $('privacyToggle').textContent = privacyMode ? '已开启' : '已关闭';
+
+  // Update eye button
+  if (privacyMode) {
+    $('eyeBtn').textContent = '👁️';
+    $('eyeBtn').classList.remove('active');
+  } else {
+    $('eyeBtn').textContent = '👁️‍🗨️';
+    $('eyeBtn').classList.add('active');
+  }
+
+  // Register PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Initial renders
+  refreshDashboard();
+  refreshDebtsPage();
+  refreshHustlePage();
+}
+
+init();
+
+console.log('🏆 清清松 v1.0 已就绪');
+console.log('📊 你的数据只存在本地浏览器，不会上传任何服务器');
+console.log('💪 每还清一笔债，你就离自由更近一步');
+</script>
+
+</body>
+</html>
