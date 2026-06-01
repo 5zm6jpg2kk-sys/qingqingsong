@@ -4,8 +4,8 @@
   "description": "智能负债管理工具 - 理清债务、规划还款、寻找副业",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#FFF8F0",
-  "theme_color": "#E67E22",
+  "background_color": "#F5F3F0",
+  "theme_color": "#FF6B35",
   "orientation": "portrait-primary",
   "icons": [
     {
