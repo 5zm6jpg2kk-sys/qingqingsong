@@ -50,8 +50,7 @@ body {
 
 /* Header */
 .header {
-  position: sticky; top: 0; z-index: 100; background: rgba(245,243,240,0.92);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100; background: rgba(245,243,240,0.97);
   padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;
   transition: all 0.25s;
 }
@@ -74,20 +73,26 @@ body {
 
 /* Bottom Tabs */
 .tab-bar {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 480px; height: var(--tab-h); z-index: 200;
-  background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
+  position: fixed; bottom: 0; left: 0; right: 0;
+  margin: 0 auto; max-width: 480px;
+  height: var(--tab-h); z-index: 200;
+  background: #FFFFFF;
   display: flex; padding-bottom: env(safe-area-inset-bottom,0);
   border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
 }
 .tab {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 3px; cursor: pointer; border: none;
   background: none; font-family: inherit; font-size: 10px;
-  color: var(--text-secondary); transition: color 0.2s; padding: 4px 0;
+  color: var(--text-secondary); transition: color 0.2s;
+  padding: 0; min-height: 48px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
+.tab:active { opacity: 0.6; }
 .tab.active { color: var(--primary); font-weight: 600; }
-.tab .t-icon { font-size: 21px; line-height: 1; }
+.tab .t-icon { font-size: 22px; line-height: 1; pointer-events: none; }
 
 /* Cards */
 .card {
@@ -155,6 +160,7 @@ body {
   white-space: nowrap;
 }
 .btn:active { transform: scale(0.96); }
+button, .btn, .chip, .qa-btn { touch-action: manipulation; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-outline { background: var(--card); color: var(--primary); border: 1.5px solid var(--primary); }
 .btn-sm { padding: 7px 14px; font-size: var(--fs-sm); border-radius: 16px; }
@@ -246,7 +252,7 @@ body {
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   z-index: 300; display: flex; align-items: flex-end; justify-content: center;
-  animation: fo 0.2s ease;
+  animation: fo 0.2s ease; pointer-events: auto;
 }
 @keyframes fo { from { opacity: 0; } to { opacity: 1; } }
 .modal {
@@ -487,7 +493,7 @@ body {
   </div>
 </div>
 
-<div id="modals"></div>
+<div id="modals" style="pointer-events:none"></div>
 <input type="file" id="shotInput" accept="image/*" multiple style="display:none" onchange="handleShots(event)">
 
 <script>
