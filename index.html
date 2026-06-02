@@ -11,7 +11,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>清清松</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --primary: #FF6B35;
@@ -73,8 +72,8 @@ body {
 
 /* Bottom Tabs */
 .tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  margin: 0 auto; max-width: 480px;
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
   height: var(--tab-h); z-index: 200;
   background: #FFFFFF;
   display: flex; padding-bottom: env(safe-area-inset-bottom,0);
@@ -735,6 +734,7 @@ function refreshDash() {
 }
 
 function drawChart(result) {
+  if (typeof Chart === 'undefined') return;
   const cv = $('trendChart'); if (!cv) return;
   const ctx = cv.getContext('2d');
   if (cv._chart) cv._chart.destroy();
@@ -1344,7 +1344,7 @@ function clearAll() {
   D = defaultData(); saveD(); refreshAll(); toast('🗑️ 已清除');
 }
 
-function refreshAll() { refreshDash(); refreshDebts(); refreshPlan(); }
+function refreshAll() { try { refreshDash(); } catch(e) { console.error(e); } try { refreshDebts(); } catch(e) { console.error(e); } try { refreshPlan(); } catch(e) { console.error(e); } }
 </script>
 
 <script>
@@ -1359,10 +1359,10 @@ function switchTab(t) {
   const tb = document.querySelector('.tab[data-t="'+t+'"]'); if (tb) tb.classList.add('active');
   const titles = { dashboard:'清清松', debts:'债务清单', plan:'还款规划', hustle:'副业推荐', settings:'设置' };
   $('hTitle').textContent = titles[t] || '清清松';
-  if (t === 'dashboard') refreshDash();
-  if (t === 'debts') refreshDebts();
-  if (t === 'plan') refreshPlan();
-  if (t === 'hustle') refreshHustles();
+  try { if (t === 'dashboard') refreshDash(); } catch(e) { console.error('refreshDash:', e); }
+  try { if (t === 'debts') refreshDebts(); } catch(e) { console.error('refreshDebts:', e); }
+  try { if (t === 'plan') refreshPlan(); } catch(e) { console.error('refreshPlan:', e); }
+  try { if (t === 'hustle') refreshHustles(); } catch(e) { console.error('refreshHustles:', e); }
   window.scrollTo(0,0);
 }
 
@@ -1385,14 +1385,24 @@ window.addEventListener('scroll', () => { $('header').classList.toggle('scrolled
 // INIT
 // ============================================
 (function init() {
-  priv = S.privacy;
-  $('privToggle').textContent = priv ? '已开启' : '已关闭';
-  $('eyeBtn').textContent = priv ? '👁️' : '👁️‍🗨️';
-  if (S.apiKey) $('apiKeyInp').value = S.apiKey;
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-  refreshAll(); refreshHustles();
-  console.log('🏆 清清松 v2.0 已就绪');
+  try {
+    priv = S.privacy;
+    $('privToggle').textContent = priv ? '已开启' : '已关闭';
+    $('eyeBtn').textContent = priv ? '👁️' : '👁️‍🗨️';
+    if (S.apiKey) $('apiKeyInp').value = S.apiKey;
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+    refreshAll(); refreshHustles();
+    console.log('🏆 清清松 v2.0 已就绪');
+  } catch(e) {
+    console.error('清清松初始化失败:', e);
+    alert('应用加载失败，请刷新页面重试。');
+  }
 })();
+</script>
+
+<!-- Chart.js: 主CDN + 备用CDN(onerror) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+        onerror="var s=document.createElement('script');s.src='https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js';document.head.appendChild(s);">
 </script>
 
 </body>
