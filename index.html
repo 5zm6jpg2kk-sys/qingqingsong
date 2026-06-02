@@ -810,7 +810,7 @@ function openDebtModal(idx) {
     const sel = d && findPlatform(d.platform||'')?.id === p.id ? ' selected' : '';
     platHTML += `<button class="platform-opt${sel}" data-pid="${p.id}" onclick="pickPlatform(this,'${p.id}')"><span class="po-icon">${p.icon}</span>${p.name}</button>`;
   });
-  platHTML += '</div><input type="hidden" id="debtPlatform" value="${d?.platform||''}"></div>';
+  platHTML += '</div><input type="hidden" id="debtPlatform" value="' + (d?.platform||'') + '"></div>';
 
   m.innerHTML = `
     <div class="modal">
